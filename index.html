@@ -127,6 +127,10 @@
       flex: 1;
     }
 
+    .notice{
+      font-size: 50px;
+    }
+
   </style>
 </head>
 <body>
@@ -180,7 +184,9 @@
   </div>
 </div>
 
-  <script>
+<div class="notice"id="notice-area">お知らせ:読み込み...</div>
+
+<script>
     const API_KEY = "test_97sHtnaRUTR";
 
     function updateTime() {
@@ -265,6 +271,16 @@
     }
   }
 
+  async function fetchNotice() {
+    try{
+      const res = await fetch("https://script.google.com/macros/s/AKfycbwcaIcWQpXWCMFElpvwOw-_8mC8Dhg-E0eZDFqjFXAO9cn1ItnTtkb3QiFoix2WLAXg/exec")
+      const text = await res.text();
+      document.getElementById("notice-area").textContent= "お知らせ：" + text;
+    }catch(e){
+      document.getElementById("notice-area").textContent="お知らせ：取得失敗";
+      console.error("お知らせの取得に失敗しました");
+    }
+  }
 
 
    
@@ -277,9 +293,11 @@
 
     updateAll();
     fetchTrainStatus();
+    fetchNotice();
 
     setInterval(updateAll, 60000);//=1000*60=1分
+    setInterval(fetchNotice, 60000);//=1000*60=1分 
     setInterval(fetchTrainStatus, 3600000);//=1000*60*60=1時間
-  </script>
+</script>
 </body>
 </html>
