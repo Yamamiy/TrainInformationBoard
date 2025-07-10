@@ -273,7 +273,7 @@
 
   async function fetchNotice() {
     try{
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwcaIcWQpXWCMFElpvwOw-_8mC8Dhg-E0eZDFqjFXAO9cn1ItnTtkb3QiFoix2WLAXg/exec")
+      const res = await fetch("https://script.google.com/macros/s/AKfycbwZStpA5rOB-vGsZD4Zms3TvBTrAwjTIemabonl58dv_7C2GmtRpnkCqzl9hx_s4yfe/exec")
       const text = await res.text();
       document.getElementById("notice-area").textContent= "お知らせ：" + text;
     }catch(e){
