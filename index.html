@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>栄東高校 JR東大宮駅 電車掲示板</title>
+  <style>
+    body {
+      background: black;
+      color: white;
+      font-family: "メイリオ", sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 1.8em;
+    }
+
+    .time {
+      font-size: 2.0em;
+      color: lightgray;
+      float: right;
+    }
+
+    .row {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      width: 100%;
+      max-width: 2400px;
+      margin: 0 auto;
+    }
+
+    .column {
+      flex: 1;
+      min-width: 380px;
+      padding: 0 20px;
+      box-sizing: border-box;
+    }
+
+    .divider {
+      width: 2px;
+      background-color: white;
+      opacity: 0.5;
+      height: auto;
+    }
+
+    .direction {
+      font-size: 3.0em;
+      color: #87CEFA;
+      margin-bottom: 10px;
+      font-weight: bold;
+      border-bottom: 5px solid white;
+      padding-bottom: 5px;
+    }
+
+    .train-info {
+      margin: 10px 0;
+      font-size: 2.0em;
+      white-space: nowrap;
+    }
+
+    .note {
+      margin-left: 10px;
+      color: #FFD700;
+    }
+
+    .urgent {
+      color: red;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .footer {
+      font-size: 1.5em;
+      color: gray;
+      margin-top: 40px;
+      border-top: 1px solid #444;
+      padding-top: 10px;
+    }
+
+    .sectionA {
+      max-width: 2400px;
+      margin: 40px auto 0;
+    }
+
+    .sectionB {
+      max-width: 2400px;
+      margin: 40px auto 0;
+      padding: 20px;                /* 中の余白 */
+      border: 2px solid white;      /* 白い枠線 */
+      border-radius: 8px;           /* 角を少し丸める（任意） */
+      background-color: #111;       /* 枠の背景（任意：全体の黒と少し違いをつけたい場合） */
+    }
+
+
+    #delay-section .train-info {
+      font-size: 1.4em;
+    }
+
+
+    .horizontal-line{
+      height: 2px;
+      background-color: white;
+      width: 100%;
+      margin: 20px 0;
+      
+    }
+
+    .status-line {
+      display: flex;
+      font-size: 1.4em;
+      margin: 10px 0;
+    }
+
+    .status-line .line-name {
+      width: 12em;
+      flex-shrink: 0;
+    }
+
+    .status-line .dash {
+      width: 2em;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .status-line .status-text {
+      flex: 1;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>JR東大宮駅 電車運行状況 <span class="time" id="now-time">現在 --:--</span></h1>
+  <h2>sakaehigashi train information board</h2>
+
+  <div class="row">
+    <div class="column">
+      <div class="direction">大宮・東京 方面</div>
+      <div id="tokyo-list"></div>
+    </div>
+
+    <div class="divider"></div> <!-- ← 中央縦線 -->
+
+    <div class="column">
+      <div class="direction">久喜・宇都宮 方面</div>
+      <div id="utsunomiya-list"></div>
+    </div>
+  </div>
+
+  <div class="sectionA" id="delay-section">
+  <div class="status-line" data-id="utsunomiya-status">
+    <span class="line-name">JR宇都宮線</span>
+    <span class="dash">ー</span>
+    <span class="status-text">情報取得中...</span>
+  </div>
+</div>
+
+<div class="horizontal-line"></div>
+
+<div class="sectionB">
+  <div class="status-line" data-id="keihin-status">
+    <span class="line-name">JR京浜東北線</span>
+    <span class="dash">ー</span>
+    <span class="status-text">情報取得中...</span>
+  </div>
+  <div class="status-line" data-id="takasaki-status">
+    <span class="line-name">JR高崎線</span>
+    <span class="dash">ー</span>
+    <span class="status-text">情報取得中...</span>
+  </div>
+  <div class="status-line" data-id="saikyo-status">
+    <span class="line-name">JR埼京線</span>
+    <span class="dash">ー</span>
+    <span class="status-text">情報取得中...</span>
+  </div>
+  <div class="status-line" data-id="musashino-status">
+    <span class="line-name">JR武蔵野線</span>
+    <span class="dash">ー</span>
+    <span class="status-text">情報取得中...</span>
+  </div>
+</div>
+
+  <script>
+    const API_KEY = "test_97sHtnaRUTR";
+
+    function updateTime() {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      document.getElementById("now-time").textContent = "現在 " + hours + ":" + minutes;
+    }
+
+    async function loadCSV(url, targetId) {
+      const res = await fetch(url);
+      const text = await res.text();
+      const rows = text.trim().split("\n").slice(1);
+
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const filtered = [];
+
+      for (const row of rows) {
+        const [time, type, dest] = row.split(",");
+        const [h, m] = time.split(":").map(Number);
+        const depMinutes = h * 60 + m;
+        const diff = depMinutes - nowMinutes;
+
+        if (diff <= 9) continue;
+        filtered.push({ time, type, dest, diff });
+        if (filtered.length >= 2) break;
+      }
+
+      const target = document.getElementById(targetId);
+      target.innerHTML = "";
+
+      for (const train of filtered) {
+        let message = "";
+        if (train.diff >= 13) {
+          message = `<span class="note">あと${train.diff}分　歩いても間に合います</span>`;
+        } else {
+          message = `<span class="urgent">あと${train.diff}分　早歩きなら間に合います</span>`;
+        }
+
+        const timeSpan = `<span style="font-size: 2.0em;">${train.time}</span> 発`;
+        const isExpress = train.type.includes("快速");
+        const typeSpan = isExpress
+          ? `<span style="color: orange;">${train.type}</span>`
+          : `${train.type}`;
+
+        const div = document.createElement("div");
+        div.className = "train-info";
+        div.innerHTML = `${timeSpan} ${typeSpan} ${train.dest}行き<br>${message}`;
+        target.appendChild(div);
+      }
+    }
+
+  async function fetchTrainStatus() {
+    const url = `https://api.ekispert.jp/v1/json/operationLine/service/rescuenow/information?key=${API_KEY}`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      const infoList = data?.ResultSet?.Information || [];
+
+      const update = (targetLineName, id, aliases = []) => {
+        const line = infoList.find(info =>
+          [targetLineName, ...aliases].some(name =>
+            info.Line?.Name?.includes(name)
+        )
+      );
+
+    const message = line?.Comment?.[0]?.text || "大きな遅れの情報はありません";
+
+    const el = document.querySelector(`[data-id="${id}"] .status-text`);
+    if (el) el.textContent = message;
+    };
+
+    update("宇都宮線", "utsunomiya-status");
+    update("京浜東北線", "keihin-status");
+    update("高崎線", "takasaki-status");
+    update("埼京線", "saikyo-status", ["埼京線・川越線"]);
+    update("武蔵野線", "musashino-status");
+      
+    } catch (e) {
+      console.error("運行情報取得失敗:", e);
+    }
+  }
+
+
+
+   
+
+    function updateAll() {
+      updateTime();
+      loadCSV("timetabletoTOKYO.csv", "tokyo-list");
+      loadCSV("timetabletoUTSUNOMIYA.csv", "utsunomiya-list");
+    }
+
+    updateAll();
+    fetchTrainStatus();
+
+    setInterval(updateAll, 60000);//=1000*60=1分
+    setInterval(fetchTrainStatus, 3600000);//=1000*60*60=1時間
+  </script>
+</body>
+</html>
